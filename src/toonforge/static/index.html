@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ToonForge · 插画到三渲二</title>
+  <style>
+    :root { font-family: system-ui, "Microsoft YaHei", sans-serif; color: #202133; background: #f4f1ec; }
+    * { box-sizing: border-box; }
+    body { margin: 0; }
+    header { padding: 24px max(24px, calc((100vw - 1050px)/2)); background: #242338; color: white; }
+    header strong { font-size: 25px; letter-spacing: .03em; }
+    header span { color: #ffc978; }
+    main { max-width: 1050px; margin: 34px auto; padding: 0 24px; }
+    .intro { color: #616273; line-height: 1.7; }
+    .layout { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin-top: 24px; }
+    .card { background: white; border: 1px solid #e2dfda; border-radius: 16px; padding: 24px; box-shadow: 0 8px 24px #2822380b; }
+    h2 { margin: 0 0 17px; font-size: 18px; }
+    .picture { height: 350px; width: 100%; display: grid; place-items: center; border: 2px dashed #d8d3ca; border-radius: 10px; background: #faf9f7; color: #85818a; overflow: hidden; }
+    .picture img { max-width: 100%; max-height: 100%; object-fit: contain; }
+    input { display: block; margin: 18px 0; max-width: 100%; }
+    button, .download { background: #7552c5; border: 0; border-radius: 9px; padding: 11px 17px; color: white; font: inherit; cursor: pointer; text-decoration: none; display: inline-block; }
+    button:disabled { opacity: .55; cursor: default; }
+    .download { background: #252238; margin-top: 14px; }
+    #status { margin: 24px 0; padding: 16px; background: #fff4dc; border-radius: 10px; min-height: 50px; }
+    .muted { color: #6d6c7a; line-height: 1.65; }
+    @media (max-width: 700px) { .layout { grid-template-columns: 1fr; } .picture { height: 270px; } }
+  </style>
+</head>
+<body>
+  <header><strong>Toon<span>Forge</span></strong>　单张插画 · 本地 3D · 三渲二</header>
+  <main>
+    <p class="intro">上传一张主体清楚的物体插画。四个专职 Agent 在本地分析图像、建模、渲染和复核；建模与渲染通过 MCP 工具执行。</p>
+    <div class="layout">
+      <section class="card">
+        <h2>1 · 输入插画</h2>
+        <div class="picture" id="source">选择 PNG 或 JPEG</div>
+        <input type="file" id="file" accept="image/png,image/jpeg">
+        <button id="start">开始生成</button>
+        <p class="muted">建议：单个物体、清晰轮廓、干净背景。最大 10 MB。</p>
+      </section>
+      <section class="card">
+        <h2>2 · 三渲二结果</h2>
+        <div class="picture" id="result">等待任务</div>
+        <div id="artifact"></div>
+      </section>
+    </div>
+    <div id="status">等待上传。</div>
+    <p class="muted" id="details"></p>
+  </main>
+  <script>
+    const file = document.getElementById('file');
+    const start = document.getElementById('start');
+    const status = document.getElementById('status');
+    const details = document.getElementById('details');
+    file.onchange = () => {
+      const selected = file.files[0];
+      if (selected) document.getElementById('source').innerHTML = `<img alt="原始插画" src="${URL.createObjectURL(selected)}">`;
+    };
+    const labels = {queued:'排队',analyzing:'分析插画',modeling:'生成 3D 模型',rendering:'三渲二渲染',reviewing:'结果复核',completed:'完成',failed:'失败'};
+    async function poll(id) {
+      const response = await fetch(`/api/jobs/${id}`);
+      const job = await response.json();
+      status.textContent = `任务 ${id.slice(0,8)} · ${labels[job.stage] || job.stage}` + (job.error ? `：${job.error}` : '');
+      details.textContent = [job.analysis?.subject, job.review?.summary, job.review ? `相似度提示：${job.review.score}/5` : ''].filter(Boolean).join(' · ');
+      if (job.status === 'completed') {
+        document.getElementById('result').innerHTML = `<img alt="三渲二预览" src="${job.preview_url}">`;
+        document.getElementById('artifact').innerHTML = `<a class="download" href="${job.model_url}">下载 GLB 模型</a>`;
+      } else if (job.status !== 'failed') {
+        setTimeout(() => poll(id).catch(error => { status.textContent = error.message; start.disabled = false; }), 2000);
+      }
+      if (job.status === 'completed' || job.status === 'failed') start.disabled = false;
+    }
+    start.onclick = async () => {
+      if (!file.files[0]) { status.textContent = '请先选择图片。'; return; }
+      start.disabled = true;
+      status.textContent = '正在提交...';
+      document.getElementById('result').textContent = '等待任务';
+      document.getElementById('artifact').textContent = '';
+      details.textContent = '';
+      try {
+        const body = new FormData();
+        body.append('image', file.files[0]);
+        const response = await fetch('/api/jobs', {method:'POST', body});
+        const job = await response.json();
+        if (!response.ok) throw new Error(job.detail || '提交失败');
+        poll(job.id);
+      } catch (error) { status.textContent = error.message; start.disabled = false; }
+    };
+  </script>
+</body>
+</html>
