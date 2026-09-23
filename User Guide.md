@@ -13,6 +13,8 @@ python3.11 --version
 blender --version
 ```
 
+也可执行 `bash scripts/doctor-spark.sh` 得到只读检查结果。脚本退出码为 0 表示所检查的命令与本地服务均就绪，1 表示有缺项；它不检查模型生成质量。
+
 `uname -m` 应为 `aarch64`。DGX Spark 使用 128 GB 统一内存；能装入权重不代表 CUDA 扩展适配。Hunyuan3D 的形状与纹理模块需要 GPU 扩展，先按[上游安装说明](https://github.com/Tencent-Hunyuan/Hunyuan3D-2.1)在独立环境试运行，再接入本项目。上游示例环境是 Python 3.10 / CUDA 12.4，不能直接假设与 GB10 兼容。需记录实际 PyTorch/CUDA/扩展版本和编译错误；不要改变本项目的 Python 环境来迁就上游。
 
 ## 2. 安装本项目
