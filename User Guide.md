@@ -4,7 +4,7 @@
 
 ## 1. 准备系统
 
-在 Spark 上分别准备 Python 3.11、Git、Ollama、Blender 4.2 LTS，以及一个独立运行的 Hunyuan3D 2.1 环境。先执行：
+在 Spark 上分别准备 Python 3.11、Git、Ollama、ARM64 版 Blender 4.0.x，以及一个独立运行的 Hunyuan3D 2.1 环境。先执行：
 
 ```bash
 uname -m
@@ -53,9 +53,19 @@ curl http://127.0.0.1:8081/health
 
 这两条命令须在 Hunyuan3D 上游仓库目录及其独立环境执行。项目使用其 `/generate` 接口，要求返回 GLB 字节。若 Spark 无法编译/运行上游扩展，先在 `docs/阶段记录.md` 记录完整错误，再考虑纯形状模式或替换适配器；不要将占位模型标作完成。
 
+一个[社区 Spark 移植项目](https://github.com/simon-lehmann/hunyuan3d-spark-fast)给出了 ARM64/CUDA 13 的构建补丁与形状、纹理推理脚本，可作为排障参考。它没有提供本项目所用的 `/generate` API；本项目尚未在实机验证该移植，也不自动下载或运行其代码。
+
 ### Blender
 
-确认 `blender --version` 显示 4.2.x，并用图形驱动环境运行。项目通过 `blender --background --python scripts/blender_toon.py -- model.glb preview.png` 渲染。无屏幕的 Spark 上，Eevee/Freestyle 可能需要额外显示或图形上下文设置，需用实际 GLB 验证。
+Ubuntu 24.04 的 ARM64 仓库有 Blender 4.0.2。先检查 `apt-cache policy blender`，确认候选版本后安装：
+
+```bash
+sudo apt update
+sudo apt install blender
+blender --version
+```
+
+Blender 官网 4.2 LTS 的 Linux 下载目录只列 x64 构建，不能直接安装到 Spark。渲染脚本会按版本选择 4.0 的 Eevee 或 4.2 的 Eevee Next。项目通过 `blender --background --python scripts/blender_toon.py -- model.glb preview.png` 渲染。无屏幕的 Spark 上，Eevee/Freestyle 可能需要额外显示或图形上下文设置，需用实际 GLB 验证。
 
 ## 4. 运行样机
 
@@ -98,7 +108,7 @@ bash scripts/test.sh
 |---|---|
 | 卡在 analyzing | Ollama 是否启动、权重是否已拉取、`OLLAMA_MODEL` 是否匹配 |
 | 卡在 modeling | Hunyuan `/health`、CUDA 扩展、显存/统一内存压力 |
-| 卡在 rendering | `BLENDER_BIN`、Blender 4.2、Eevee 图形上下文、GLB 可导入性 |
+| 卡在 rendering | `BLENDER_BIN`、Blender 4.0/4.2、Eevee 图形上下文、GLB 可导入性 |
 | `failed` | 打开任务 `job.json` 的 `stage` 和 `error`；保留目录用于复现 |
 
-外部依据：[DGX Spark 硬件](https://docs.nvidia.com/dgx/dgx-spark/hardware.html)、[Hunyuan3D API](https://github.com/Tencent-Hunyuan/Hunyuan3D-2.1/blob/main/API_DOCUMENTATION.md)、[Blender 4.2 手册](https://docs.blender.org/manual/en/4.2/)。
+外部依据：[DGX Spark 硬件](https://docs.nvidia.com/dgx/dgx-spark/hardware.html)、[Hunyuan3D API](https://github.com/Tencent-Hunyuan/Hunyuan3D-2.1/blob/main/API_DOCUMENTATION.md)、[Ubuntu ARM64 Blender 包](https://packages.ubuntu.com/noble/blender)、[Blender 4.2 下载目录](https://download.blender.org/release/Blender4.2/)。
