@@ -1,0 +1,41 @@
+services:
+  shape:
+    image: hunyuan3d-spark:shape
+    pull_policy: never
+    gpus: all
+    ipc: host
+    shm_size: "16gb"
+    network_mode: none
+    environment:
+      HF_HOME: /root/.cache/huggingface
+      HF_HUB_OFFLINE: "1"
+      TRANSFORMERS_OFFLINE: "1"
+      NVIDIA_VISIBLE_DEVICES: all
+    volumes:
+      - ${HOME}/.cache/huggingface/hub:/root/.cache/huggingface/hub:ro
+      - ../.cache/huggingface/modules:/root/.cache/huggingface/modules
+      - ./out:/workspace/out
+      - ./assets:/workspace/assets
+    working_dir: /workspace
+  full:
+    image: hunyuan3d-spark:full
+    pull_policy: never
+    gpus: all
+    ipc: host
+    shm_size: "16gb"
+    network_mode: none
+    environment:
+      HF_HOME: /root/.cache/huggingface
+      HF_HUB_OFFLINE: "1"
+      TRANSFORMERS_OFFLINE: "1"
+      NVIDIA_VISIBLE_DEVICES: all
+    volumes:
+      - ${HOME}/.cache/huggingface/hub:/root/.cache/huggingface/hub:ro
+      - ../.cache/huggingface/modules:/root/.cache/huggingface/modules
+      - ./out:/workspace/out
+      - ./assets:/workspace/assets
+      - hunyuan3d-spark-fast_build-cache:/opt/build_cache
+    working_dir: /workspace
+volumes:
+  hunyuan3d-spark-fast_build-cache:
+    external: true

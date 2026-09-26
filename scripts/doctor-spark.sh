@@ -25,16 +25,20 @@ printf '架构：%s\n' "$(uname -m)"
 if [[ "$(uname -m)" != 'aarch64' ]]; then
   printf '[注意] 当前设备不是 DGX Spark 的 ARM64 环境\n'
 fi
-check_command python3.11
+if command -v python3.11 >/dev/null 2>&1; then
+  check_command python3.11
+else
+  check_command python3.12
+fi
 check_command nvidia-smi
-check_command blender
+check_command "${BLENDER_BIN:-blender}"
 check_command curl
 
 if command -v nvidia-smi >/dev/null 2>&1; then
   nvidia-smi --query-gpu=name,driver_version --format=csv,noheader || true
 fi
-if command -v blender >/dev/null 2>&1; then
-  blender --version | head -n 1
+if command -v "${BLENDER_BIN:-blender}" >/dev/null 2>&1; then
+  "${BLENDER_BIN:-blender}" --version | head -n 1
 fi
 if command -v curl >/dev/null 2>&1; then
   check_url Ollama http://127.0.0.1:11434/api/tags

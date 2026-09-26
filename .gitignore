@@ -1,7 +1,9 @@
 .venv/
+.tools/
 __pycache__/
 .pytest_cache/
 *.pyc
 *.egg-info/
 data/
+data1/
 .belief_map.sexp
