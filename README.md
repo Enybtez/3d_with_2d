@@ -17,7 +17,7 @@ pytest -q
 python -m toonforge.cli serve
 ```
 
-网页地址 `http://127.0.0.1:8000`。真正生成前还需本地 Ollama、Hunyuan3D API 与 Blender，见用户指南。当前开发机没有 DGX Spark 或 Blender，真实模型/渲染效果尚未实机验收。
+网页地址 `http://127.0.0.1:8000`。真正生成前还需本地 Ollama、Hunyuan3D API 或 Spark CLI 桥接，以及 Blender，见用户指南。当前开发机没有 DGX Spark 或 Blender，真实模型/渲染效果尚未实机验收。
 
 ## 结构
 

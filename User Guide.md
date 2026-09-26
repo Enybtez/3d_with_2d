@@ -1,6 +1,6 @@
 # User Guide
 
-版本：2026-09-23。一阶段开发和测试在 Windows/Python 3.13 完成；目标部署平台为 DGX Spark 的 Linux ARM64。真实生成要在 Spark 上补做实机验收。
+版本：2026-09-26。一阶段开发和测试在 Windows/Python 3.13 完成；目标部署平台为 DGX Spark 的 Linux ARM64。真实生成要在 Spark 上补做实机验收。
 
 ## 1. 准备系统
 
@@ -55,7 +55,28 @@ curl http://127.0.0.1:8081/health
 
 这两条命令须在 Hunyuan3D 上游仓库目录及其独立环境执行。项目使用其 `/generate` 接口，要求返回 GLB 字节。若 Spark 无法编译/运行上游扩展，先在 `docs/阶段记录.md` 记录完整错误，再考虑纯形状模式或替换适配器；不要将占位模型标作完成。
 
-一个[社区 Spark 移植项目](https://github.com/simon-lehmann/hunyuan3d-spark-fast)给出了 ARM64/CUDA 13 的构建补丁与形状、纹理推理脚本，可作为排障参考。它没有提供本项目所用的 `/generate` API；本项目尚未在实机验证该移植，也不自动下载或运行其代码。
+若上游 API 在 GB10 上无法运行，可选用[社区 Spark 移植项目](https://github.com/simon-lehmann/hunyuan3d-spark-fast)及本项目的本地桥接。该项目公开了 ARM64/CUDA 13 的形状、纹理 Docker 推理脚本，但没有 `/generate` API；桥接服务负责协议转换。该移植未经本项目实机验证，先独立完成其构建和模型推理，再运行桥接：
+
+```bash
+# 在 Spark 上，先安装 Docker、NVIDIA Container Toolkit，并确认 docker compose 可用
+git clone https://github.com/simon-lehmann/hunyuan3d-spark-fast.git ../hunyuan3d-spark-fast
+cd ../hunyuan3d-spark-fast
+cp .env.example .env
+# 编辑 .env 的 HF_HOME 为本机已下载 tencent/Hunyuan3D-2.1 和 facebook/dinov2-giant 的绝对缓存路径
+docker compose build shape full
+docker compose run --rm shape scripts/shape_infer.py --image /workspace/assets/demo.png --out /workspace/out/shape.glb
+docker compose run --rm full scripts/texture_infer.py --mesh /workspace/out/shape.glb --image /workspace/assets/demo.png --out /workspace/out/textured.glb
+```
+
+确认 `out/textured.glb` 能打开后，回到本项目目录，在已安装本项目依赖的环境启动桥接：
+
+```bash
+python -m toonforge.spark_bridge --repo ../hunyuan3d-spark-fast --port 8081
+# 另一个终端
+curl --fail http://127.0.0.1:8081/health
+```
+
+桥接使用社区镜像的 `ENTRYPOINT python`，因此 `docker compose run` 后直接传脚本路径。桥接只接收带纹理 GLB 请求，逐个调用形状与纹理容器；不要启动多个桥接实例。首次构建、权重下载和首次推理可能较慢。权重许可、Docker GPU 挂载、容器文件权限和具体耗时必须以 Spark 实机结果为准。
 
 ### Blender
 
